@@ -55,7 +55,7 @@ public class Pdf {
                 fare1.setValue(formData.get("Fare1"));
 
                 PDTextField child1 = (PDTextField) acroForm.getField( "Child1" );
-                child1.setValue(formData.get("Fare1"));
+                child1.setValue(formData.get("Child1"));
 
                 PDTextField description2 = (PDTextField) acroForm.getField( "Desc2" );
                 description2.setValue(formData.get("Description2"));
@@ -64,7 +64,7 @@ public class Pdf {
                 fare2.setValue(formData.get("Fare2"));
 
                 PDTextField child2 = (PDTextField) acroForm.getField( "Child2" );
-                child2.setValue(formData.get("Fare2"));
+                child2.setValue(formData.get("Child2"));
 
                 PDTextField subtotal = (PDTextField) acroForm.getField( "Subtotal" );
                 subtotal.setValue(formData.get("Subtotal"));
@@ -81,8 +81,7 @@ public class Pdf {
                 pdfDocument.save(fileName);
                 pdfDocument.save(out);
                 pdfDocument.close();
-                ByteArrayInputStream in = new ByteArrayInputStream(out.toByteArray());
-                return in;
+                return new ByteArrayInputStream(out.toByteArray());
 
 
 //				String fileName = "SJI-" + formData.get("Month") + "-" + formData.get("ParentName") + ".pdf";
