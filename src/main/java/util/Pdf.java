@@ -9,15 +9,31 @@ import java.util.Map;
 
 public class Pdf {
     private static final String SOURCE_FILE_PATH = "/SourceFile.pdf";
+    private static final String MAC_FILE_PATH = "Invoices/SourceFiles/SourceFile.pdf";
+    private static final String WIN_FILE_PATH = "C:\\Invoices\\SourceFile.pdf";
 
-    public InputStream fillPdf(Map<String, String> formData) throws IOException {
+    public InputStream fillPdf(Map<String, String> formData, int os, int custom) throws IOException {
         // load the document
-        InputStream template = Pdf.class.getResourceAsStream(SOURCE_FILE_PATH);
-        if (template == null) {
-            throw new FileNotFoundException("SourceFile.pdf is not found: " + SOURCE_FILE_PATH);
+        InputStream template = null;
+        File templateFile = null;
+        if (custom == 1) {
+            template = Pdf.class.getResourceAsStream(SOURCE_FILE_PATH);
+            if (template == null) {
+                throw new FileNotFoundException("SourceFile.pdf is not found: " + SOURCE_FILE_PATH);
+            }
+        } else {
+            if (os == 1) {
+                templateFile = new File(WIN_FILE_PATH);
+            } else {
+                templateFile = new File(MAC_FILE_PATH);
+            }
         }
-
-        try (PDDocument pdfDocument = PDDocument.load(template)) {
+            PDDocument pdfDocument;
+            if (custom == 1) {
+                pdfDocument = PDDocument.load(template);
+            } else {
+                pdfDocument = PDDocument.load(templateFile);
+            }
             //get document catalog
             PDAcroForm acroForm = pdfDocument.getDocumentCatalog().getAcroForm();
 
@@ -75,22 +91,36 @@ public class Pdf {
                 // Flatten PDF to prevent further editing
                 acroForm.flatten();
 
+                // Save File
+                String dirName;
+
+                if (os == 1) {
+                    // windows
+                    dirName = "C:\\Invoices\\" + formData.get("ParentName") + "\\";
+                } else {
+                    // mac
+                    dirName = "Invoices/" + formData.get("ParentName") + "/";
+                }
+
+                String fileName = "SJI-" + formData.get("Month") + "-" + formData.get("ParentName") + ".pdf";
+
+                File file = fileWithDirectoryAssurance(dirName, fileName);
+                pdfDocument.save(file);
+
                 // Construct output stream for return
                 ByteArrayOutputStream out = new ByteArrayOutputStream();
-                String fileName = "SJI-" + formData.get("Month") + "-" + formData.get("ParentName") + ".pdf";
-                pdfDocument.save(fileName);
+
                 pdfDocument.save(out);
                 pdfDocument.close();
                 return new ByteArrayInputStream(out.toByteArray());
-
-
-//				String fileName = "SJI-" + formData.get("Month") + "-" + formData.get("ParentName") + ".pdf";
-//
-//				// Save and close the filled out form.
-//	            pdfDocument.save(fileName);
-//				pdfDocument.close();
             }
-        }
         return template;
     }
+
+    private static File fileWithDirectoryAssurance(String directory, String filename) {
+        File dir = new File(directory);
+        if (!dir.exists()) dir.mkdirs();
+        return new File(directory + "/" + filename);
+    }
+
 }

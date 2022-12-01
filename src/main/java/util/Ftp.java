@@ -22,8 +22,6 @@ public class Ftp {
 
             ftpClient.setFileType(FTP.BINARY_FILE_TYPE);
 
-            parentName = parentName.replaceAll("\\s+","");
-            fileName = fileName.replaceAll("\\s+","");
             String dirname = "/" + parentName;
             ftpCreateDirectoryTree(ftpClient, dirname);
             String remoteFile = "/" + parentName + "/" + fileName;
