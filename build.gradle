@@ -5,6 +5,8 @@ plugins {
     id 'org.beryx.runtime' version '1.12.7'
 }
 
+mainClassName = 'InvoiceGenerator.Main'
+
 group 'org.example'
 version '1.0-SNAPSHOT'
 
