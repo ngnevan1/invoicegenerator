@@ -94,6 +94,9 @@ public class Main {
                 } else {
                     System.out.println("Invoices/ParentName");
                 }
+                System.out.println("...Press any key to continue...");
+                scanner.nextLine();
+                scanner.nextLine();
                 System.out.println("Goodbye!");
             } catch (IOException ex) {
                 Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
