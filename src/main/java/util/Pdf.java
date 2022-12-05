@@ -1,120 +1,114 @@
 package util;
 
+import bean.Invoice;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.interactive.form.PDAcroForm;
 import org.apache.pdfbox.pdmodel.interactive.form.PDTextField;
 
-import java.io.*;
-import java.util.Map;
+import java.io.File;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
 
 public class Pdf {
-    private static final String SOURCE_FILE_PATH = "/SourceFile.pdf";
     private static final String MAC_FILE_PATH = "Invoices/SourceFiles/SourceFile.pdf";
     private static final String WIN_FILE_PATH = "C:\\Invoices\\SourceFile.pdf";
 
-    public InputStream fillPdf(Map<String, String> formData, int os, int custom) throws IOException {
+    public String fillPdf(Invoice invoice, int os, String schName) throws IOException {
         // load the document
-        InputStream template = null;
-        File templateFile = null;
-        if (custom == 1) {
-            template = Pdf.class.getResourceAsStream(SOURCE_FILE_PATH);
-            if (template == null) {
-                throw new FileNotFoundException("SourceFile.pdf is not found: " + SOURCE_FILE_PATH);
-            }
+        File templateFile;
+
+        if (os == 1) {
+            templateFile = new File(WIN_FILE_PATH);
         } else {
-            if (os == 1) {
-                templateFile = new File(WIN_FILE_PATH);
-            } else {
-                templateFile = new File(MAC_FILE_PATH);
-            }
+            templateFile = new File(MAC_FILE_PATH);
         }
-            PDDocument pdfDocument;
-            if (custom == 1) {
-                pdfDocument = PDDocument.load(template);
+
+        PDDocument pdfDocument = PDDocument.load(templateFile);
+
+        //get document catalog
+        PDAcroForm acroForm = pdfDocument.getDocumentCatalog().getAcroForm();
+
+        //set invoice date
+        Calendar invoiceDate = Calendar.getInstance();
+        invoiceDate.set(Calendar.DAY_OF_MONTH, 25);
+        Calendar invoiceDueDate = Calendar.getInstance();
+        invoiceDueDate.set(Calendar.DAY_OF_MONTH, 5);
+        invoiceDueDate.add(Calendar.MONTH, 1);
+        SimpleDateFormat outputDateFormat = new SimpleDateFormat("dd-MMM-yyyy");
+
+        //set invoice no. and filename
+        SimpleDateFormat fileNameFormat = new SimpleDateFormat("MMMyy");
+        String invoiceNo = schName + "-" + fileNameFormat.format(invoiceDueDate.getTime()) + "-" + invoice.getChildId();
+        String fileName = invoiceNo + ".pdf";
+
+        // as there might not be an AcroForm entry a null check is necessary
+        if (acroForm != null) {
+            // Retrieve an individual field and set its value.
+            if (invoice.getParentType().equals("Parent")) {
+                PDTextField parentName1 = (PDTextField) acroForm.getField("ParentName1");
+                parentName1.setValue(invoice.getFatherName());
+
+                PDTextField parentEmail1 = (PDTextField) acroForm.getField("ParentEmail1");
+                parentEmail1.setValue(invoice.getFatherEmail());
+
+                PDTextField parentName2 = (PDTextField) acroForm.getField("ParentName2");
+                parentName2.setValue(invoice.getMotherName());
+
+                PDTextField parentEmail2 = (PDTextField) acroForm.getField("ParentEmail2");
+                parentEmail2.setValue(invoice.getMotherEmail());
             } else {
-                pdfDocument = PDDocument.load(templateFile);
+                PDTextField parentName1 = (PDTextField) acroForm.getField("ParentName1");
+                parentName1.setValue(invoice.getGuardianName());
+
+                PDTextField parentEmail1 = (PDTextField) acroForm.getField("ParentEmail1");
+                parentEmail1.setValue(invoice.getGuardianEmail());
             }
-            //get document catalog
-            PDAcroForm acroForm = pdfDocument.getDocumentCatalog().getAcroForm();
 
-            // as there might not be an AcroForm entry a null check is necessary
-            if (acroForm != null) {
-                // Retrieve an individual field and set its value.
-                PDTextField parentName = (PDTextField) acroForm.getField( "ParentName" );
-                parentName.setValue(formData.get("ParentName"));
+            PDTextField invoiceNoField = (PDTextField) acroForm.getField("InvoiceNo");
+            invoiceNoField.setValue(invoiceNo);
 
-                PDTextField addressLine1 = (PDTextField) acroForm.getField( "AddressLine1" );
-                addressLine1.setValue(formData.get("AddressLine1"));
+            PDTextField date = (PDTextField) acroForm.getField("InvoiceDate");
+            date.setValue(outputDateFormat.format(invoiceDate.getTime()));
 
-                PDTextField addressLine2 = (PDTextField) acroForm.getField( "AddressLine2" );
-                addressLine2.setValue(formData.get("AddressLine2"));
+            PDTextField dueDate = (PDTextField) acroForm.getField("DueDate");
+            dueDate.setValue(outputDateFormat.format(invoiceDueDate.getTime()));
 
-                PDTextField invoiceNo = (PDTextField) acroForm.getField( "InvoiceNo" );
-                invoiceNo.setValue(formData.get("InvoiceNo"));
+            PDTextField mth = (PDTextField) acroForm.getField("Mth1");
+            mth.setValue(new SimpleDateFormat("MMM").format(invoiceDueDate.getTime()));
 
-                PDTextField date = (PDTextField) acroForm.getField( "Date" );
-                date.setValue(formData.get("Date"));
+            PDTextField desc1 = (PDTextField) acroForm.getField("Desc1");
+            desc1.setValue("School Bus Fee for " + invoice.getChildName());
 
-                PDTextField dueDate = (PDTextField) acroForm.getField( "DueDate" );
-                dueDate.setValue(formData.get("DueDate"));
+            PDTextField fare1 = (PDTextField) acroForm.getField("Fare1");
+            fare1.setValue("$" + invoice.getFare());
 
-                PDTextField month1 = (PDTextField) acroForm.getField( "Mth1" );
-                month1.setValue(formData.get("Month"));
+            PDTextField subtotal = (PDTextField) acroForm.getField("Subtotal");
+            subtotal.setValue(invoice.getFare());
 
-                PDTextField month2 = (PDTextField) acroForm.getField( "Mth2" );
-                month2.setValue(formData.get("Month"));
+            PDTextField balDue = (PDTextField) acroForm.getField("BalDue");
+            balDue.setValue(invoice.getFare());
 
-                PDTextField description1 = (PDTextField) acroForm.getField( "Desc1" );
-                description1.setValue(formData.get("Description1"));
+            // Flatten PDF to prevent further editing
+            acroForm.flatten();
 
-                PDTextField fare1 = (PDTextField) acroForm.getField( "Fare1" );
-                fare1.setValue(formData.get("Fare1"));
+            // Save File
+            String dirName;
+            String childName = invoice.getChildName();
 
-                PDTextField child1 = (PDTextField) acroForm.getField( "Child1" );
-                child1.setValue(formData.get("Child1"));
-
-                PDTextField description2 = (PDTextField) acroForm.getField( "Desc2" );
-                description2.setValue(formData.get("Description2"));
-
-                PDTextField fare2 = (PDTextField) acroForm.getField( "Fare2" );
-                fare2.setValue(formData.get("Fare2"));
-
-                PDTextField child2 = (PDTextField) acroForm.getField( "Child2" );
-                child2.setValue(formData.get("Child2"));
-
-                PDTextField subtotal = (PDTextField) acroForm.getField( "Subtotal" );
-                subtotal.setValue(formData.get("Subtotal"));
-
-                PDTextField balanceDue = (PDTextField) acroForm.getField( "BalDue" );
-                balanceDue.setValue(formData.get("BalanceDue"));
-
-                // Flatten PDF to prevent further editing
-                acroForm.flatten();
-
-                // Save File
-                String dirName;
-
-                if (os == 1) {
-                    // windows
-                    dirName = "C:\\Invoices\\" + formData.get("ParentName") + "\\";
-                } else {
-                    // mac
-                    dirName = "Invoices/" + formData.get("ParentName") + "/";
-                }
-
-                String fileName = "SJI-" + formData.get("Month") + "-" + formData.get("ParentName") + ".pdf";
-
-                File file = fileWithDirectoryAssurance(dirName, fileName);
-                pdfDocument.save(file);
-
-                // Construct output stream for return
-                ByteArrayOutputStream out = new ByteArrayOutputStream();
-
-                pdfDocument.save(out);
-                pdfDocument.close();
-                return new ByteArrayInputStream(out.toByteArray());
+            if (os == 1) {
+                // windows
+                dirName = "C:\\Invoices\\" + childName + "\\";
+            } else {
+                // mac
+                dirName = "Invoices/" + childName + "/";
             }
-        return template;
+
+            File file = fileWithDirectoryAssurance(dirName, fileName);
+            pdfDocument.save(file);
+            pdfDocument.close();
+        }
+        return fileName;
     }
 
     private static File fileWithDirectoryAssurance(String directory, String filename) {
