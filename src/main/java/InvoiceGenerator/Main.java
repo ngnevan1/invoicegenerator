@@ -3,6 +3,7 @@ package InvoiceGenerator;
 import bean.Child;
 import bean.Invoice;
 import util.Csv;
+import util.EmailManager;
 import util.Pdf;
 
 import java.io.IOException;
@@ -110,26 +111,25 @@ public class Main {
     }
 
     private static void sendEmail(String schName, Invoice invoice, InputStream pdf) {
-//        try (InputStream input = Main.class.getClassLoader().getResourceAsStream("config.properties")) {
-//
-//            Properties prop = new Properties();
-//
-//            if (input == null) {
-//                System.out.println("Sorry, unable to find config.properties");
-//                return;
-//            }
-//
-//            //load a properties file from class path, inside static method
-//            prop.load(input);
-//
-//            if (schName.equals("SJI")) {
-//                EmailManager emailManager = new EmailManager("sji@rstransport.com.sg", prop.getProperty("smtpAuthPassword"));
-//                emailManager.sendEmail(invoice, pdf);
-//            }
-//
-//        } catch (IOException ex) {
-//            ex.printStackTrace();
-//        }
+        try (InputStream input = Main.class.getClassLoader().getResourceAsStream("config.properties")) {
+
+            Properties prop = new Properties();
+
+            if (input == null) {
+                System.out.println("Sorry, unable to find config.properties");
+            }
+
+            //load a properties file from class path, inside static method
+            prop.load(input);
+
+            if (schName.equals("SJI")) {
+                EmailManager emailManager = new EmailManager("sji@rstransport.com.sg", prop.getProperty("smtpAuthPassword"));
+                emailManager.sendEmail(invoice, pdf);
+            }
+
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        }
     }
 
 
