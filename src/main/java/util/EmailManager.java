@@ -1,6 +1,6 @@
 package util;
 
-import bean.Invoice;
+import entity.Invoice;
 import jakarta.activation.DataHandler;
 import jakarta.activation.DataSource;
 import jakarta.mail.*;

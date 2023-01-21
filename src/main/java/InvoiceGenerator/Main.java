@@ -1,7 +1,7 @@
 package InvoiceGenerator;
 
-import bean.Child;
-import bean.Invoice;
+import entity.Child;
+import entity.Invoice;
 import util.Csv;
 import util.EmailManager;
 import util.Pdf;
@@ -20,9 +20,10 @@ public class Main {
 
     public static void main(String[] args) {
 
-        System.out.println("***Invoice Generator Application v1.1***");
+        System.out.println("***Invoice Generator Application v1.2***");
         Scanner scanner = new Scanner(System.in);
         String osName = System.getProperty("os.name");
+        int sendEmail = 0;
         String schName = "SJI";
         int os = osName.equals("Mac OS X") ? 2 : 1;
 
@@ -35,82 +36,98 @@ public class Main {
             System.out.println(MAC_PDF_PATH);
             System.out.println(MAC_CSV_PATH);
         }
-        System.out.print("Enter 1 to continue> ");
-        if (scanner.nextInt() == 1) {
 
-            try {
-                List<Child> allChildren = Csv.getRowData(os);
-                if (allChildren.isEmpty()) {
-                    System.out.println("No data found.");
-                } else {
-                    int numRows = allChildren.size();
-                    int count = 0;
-                    System.out.println(numRows + " rows detected");
-                    // get list of duplicates (siblings)
-                    Set<String> hasSiblings = new HashSet<>();
-                    Set<String> noSiblings = new HashSet<>();
-                    for (Child c : allChildren) {
-                        if (!noSiblings.add(c.getFatherName()) && !c.getFatherName().isEmpty()) {
-                            hasSiblings.add(c.getFatherName());
-                        }
-                    }
+        System.out.println("Please enter the Invoice Date (DD)>");
+        int dateOfInvoice = scanner.nextInt();
 
-                    // separate each duplicate (sibling) into each own list (own siblings)
-                    for (String fatherName : hasSiblings) {
-                        List<Child> familyGroup = new ArrayList<>();
-                        for (Child child : allChildren) {
-                            if (fatherName.equals(child.getFatherName())) {
-                                familyGroup.add(child);
-                            }
-                        }
-                        //generate invoice per family
-                        Invoice invoice = new Invoice(familyGroup, schName);
-                        InputStream pdf = new Pdf().fillPdf(invoice, os);
-                        sendEmail(schName, invoice, pdf);
-                        count+= familyGroup.size();
-                        System.out.println("Invoices Generated for " + count + "/" + numRows + " children");
-                        System.out.println(count + "/" + numRows + " Invoices Generated: " + invoice.getFileName());
+        System.out.println("Please enter the Invoice Due Date (DD)>");
+        int dueDateOfInvoice = scanner.nextInt();
 
-                    }
-                    // generate invoice for remaining children
-                    List<Child> remainingChildren = new ArrayList<>();
-                    for (Child c : allChildren) {
-                        if (!hasSiblings.contains(c.getFatherName())) {
-                            remainingChildren.add(c);
-                        }
-                    }
-                    System.out.println("Remaining Children: " + remainingChildren.size());
-                    for (Child c : remainingChildren) {
-                        List<Child> child = new ArrayList<>();
-                        child.add(c);
-                        Invoice invoice = new Invoice(child, schName);
-                        InputStream pdf = new Pdf().fillPdf(invoice, os);
-                        sendEmail(schName, invoice, pdf);
-                        count++;
-                        System.out.println("Invoices Generated for " + count + "/" + numRows + " children");
-                        System.out.println(count + "/" + numRows + " Invoices Generated: " + invoice.getFileName());
-                    }
+        while (true) {
+            System.out.print("Do you want emails to be sent? (1: Yes, 2: No)> ");
+            int input = scanner.nextInt();
+            if (input >= 1 && input <= 2) {
+                if (input == 1) {
+                    sendEmail = 1;
                 }
-                System.out.println("***Invoice Generation Complete***");
-                System.out.println("To retrieve your invoices, please check the following directory:");
-                if (os == 1) {
-                    System.out.println("C:\\Invoices\\ParentName");
-                } else {
-                    System.out.println("Invoices/ParentName");
-                }
-                System.out.println("...Press any key to continue...");
-                scanner.nextLine();
-                scanner.nextLine();
-                System.out.println("Goodbye!");
-            } catch (IOException ex) {
-                Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
+                break;
+            } else {
+                System.out.println("Invalid option, please try again!\n");
             }
-        } else {
-            System.out.println("Goodbye!");
         }
+        try {
+            List<Child> allChildren = Csv.getRowData(os);
+            if (allChildren.isEmpty()) {
+                System.out.println("No data found.");
+            } else {
+                int numRows = allChildren.size();
+                int count = 0;
+                System.out.println(numRows + " rows detected");
+
+                // get list of duplicates (children on different bus for return trip)
+                Set<String> duplicateFound = new HashSet<>();
+                Set<String> noDuplicate = new HashSet<>();
+                for (Child c : allChildren) {
+                    if (!noDuplicate.add(c.getChildName())) {
+                        duplicateFound.add(c.getChildName());
+                    }
+                }
+                int childCount = numRows - duplicateFound.size();
+                System.out.println(childCount + " invoices to generate");
+
+                // separate each duplicate into their own list to total up fares
+                for (String childName : duplicateFound) {
+                    List<Child> eachChild = new ArrayList<>();
+                    for (Child child : allChildren) {
+                        if (child.getChildName().equals(childName)) {
+                            eachChild.add(child);
+                        }
+                    }
+                    //generate invoice per duplicate child
+                    count = generateInvoice(sendEmail, schName, os, count, childCount, eachChild, dateOfInvoice, dueDateOfInvoice);
+
+                }
+                // generate invoice for remaining children
+                List<Child> remainingChildren = new ArrayList<>();
+                for (Child c : allChildren) {
+                    if (!duplicateFound.contains(c.getChildName())) {
+                        remainingChildren.add(c);
+                    }
+                }
+                System.out.println("Remaining Children: " + remainingChildren.size());
+                for (Child c : remainingChildren) {
+                    List<Child> child = new ArrayList<>();
+                    child.add(c);
+                    count = generateInvoice(sendEmail, schName, os, count, childCount, child, dateOfInvoice, dueDateOfInvoice);
+                }
+            }
+            System.out.println("***Invoice Generation Complete***");
+            System.out.println("To retrieve your invoices, please check the following directory:");
+            if (os == 1) {
+                System.out.println("C:\\Invoices\\ParentName");
+            } else {
+                System.out.println("Invoices/ParentName");
+            }
+            System.out.println("...Press any key to continue...");
+            scanner.nextLine();
+            scanner.nextLine();
+            System.out.println("Goodbye!");
+        } catch (IOException ex) {
+            Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
+        }
+
     }
 
-    private static void sendEmail(String schName, Invoice invoice, InputStream pdf) {
+    private static int generateInvoice(int sendEmail, String schName, int os, int count, int childCount, List<Child> eachChild, int dateOfInvoice, int dueDateOfInvoice) throws IOException {
+        Invoice invoice = new Invoice(eachChild, schName, count, dateOfInvoice, dueDateOfInvoice);
+        InputStream pdf = new Pdf().fillPdf(invoice, os);
+        sendEmail(schName, invoice, pdf, sendEmail);
+        count++;
+        System.out.println(count + "/" + childCount + " Invoices Generated: " + invoice.getFileName());
+        return count;
+    }
+
+    private static void sendEmail(String schName, Invoice invoice, InputStream pdf, int sendEmail) {
         try (InputStream input = Main.class.getClassLoader().getResourceAsStream("config.properties")) {
 
             Properties prop = new Properties();
@@ -122,7 +139,7 @@ public class Main {
             //load a properties file from class path, inside static method
             prop.load(input);
 
-            if (schName.equals("SJI")) {
+            if (schName.equals("SJI") && sendEmail == 1) {
                 EmailManager emailManager = new EmailManager("sji@rstransport.com.sg", prop.getProperty("smtpAuthPassword"));
                 emailManager.sendEmail(invoice, pdf);
             }

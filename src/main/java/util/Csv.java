@@ -1,7 +1,6 @@
 package util;
 
-import bean.Child;
-import bean.IdFilter;
+import entity.Child;
 import com.opencsv.bean.CsvToBeanBuilder;
 
 import java.io.FileNotFoundException;
@@ -23,7 +22,7 @@ public class Csv {
                 .withType(Child.class)
                 .withSkipLines(3)
                 .withIgnoreEmptyLine(true)
-                .withFilter(new IdFilter())
+                .withFilter(new ValidChildFilter())
                 .build()
                 .parse();
     }

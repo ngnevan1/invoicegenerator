@@ -1,4 +1,4 @@
-package bean;
+package entity;
 
 import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
@@ -32,12 +32,12 @@ public class Invoice {
 
     private final String fileName;
 
-    public Invoice(String schName, List<Child> childIds) {
+    public Invoice(String schName, String childName, int childCount, int dateOfInvoice, int dueDateOfInvoice) {
         //set invoice dates
         Calendar invoiceDate = Calendar.getInstance();
-        invoiceDate.set(Calendar.DAY_OF_MONTH, 25);
+        invoiceDate.set(Calendar.DAY_OF_MONTH, dateOfInvoice);
         Calendar invoiceDueDate = Calendar.getInstance();
-        invoiceDueDate.set(Calendar.DAY_OF_MONTH, 5);
+        invoiceDueDate.set(Calendar.DAY_OF_MONTH, dueDateOfInvoice);
         invoiceDueDate.add(Calendar.MONTH, 1);
         SimpleDateFormat outputDateFormat = new SimpleDateFormat("dd-MMM-yyyy");
 
@@ -47,20 +47,25 @@ public class Invoice {
 
         //set invoice no. and filename
         SimpleDateFormat fileNameFormat = new SimpleDateFormat("MMMyy");
-        invoiceNo = schName + "-" + fileNameFormat.format(invoiceDueDate.getTime()) + "-";
+        String childNameFormatted = String.valueOf(childName);
+        childNameFormatted = childNameFormatted.replace("/","");
+        this.fileName = schName + "-" + fileNameFormat.format(invoiceDueDate.getTime()) + "-" + childNameFormatted.replaceAll(" ", ".") + ".pdf";
 
-        for (Child c : childIds) {
-            invoiceNo+= c.getChildId() + ".";
-        }
-        invoiceNo = removeLastChar(invoiceNo);
-        fileName = invoiceNo + ".pdf";
+        this.invoiceNo = schName + "-" + fileNameFormat.format(invoiceDueDate.getTime()) + "-" + childCount;
+
+        List<String> descriptions = new ArrayList<>();
+        List<String> childNames = new ArrayList<>();
+
+        descriptions.add("School Bus Fee for " + childName);
+        childNames.add(childNameFormatted);
+        this.descs = descriptions;
+        this.childNames = childNames;
     }
 
-    public Invoice(List<Child> children, String schName) {
-        this(schName, children);
+    public Invoice(List<Child> children, String schName, int childCount, int dateOfInvoice, int dueDateOfInvoice) {
+        this(schName, children.get(0).getChildName(), childCount, dateOfInvoice, dueDateOfInvoice);
         Child lineItem = children.get(0);
 
-        if (lineItem.getParentType().equals("Parent")) {
             if (lineItem.getFatherName().isEmpty() || lineItem.getFatherName() == null) {
                 parentName1 = lineItem.getMotherName();
                 parentEmail1 = lineItem.getMotherEmail();
@@ -74,35 +79,21 @@ public class Invoice {
                 parentName2 = lineItem.getMotherName();
                 parentEmail2 = lineItem.getMotherEmail();
             }
-        } else {
-            parentName1 = lineItem.getGuardianName();
-            parentEmail1 = lineItem.getGuardianEmail();
-        }
-        List<String> descriptions = new ArrayList<>();
-        List<BigDecimal> fares = new ArrayList<>();
-        List<String> childNames = new ArrayList<>();
+
+        BigDecimal totalFare = new BigDecimal("0.00");
         for (Child c : children) {
-           descriptions.add("School Bus Fee for " + c.getChildName());
-           fares.add(c.getFare());
-            childNames.add(c.getChildName());
+            totalFare = totalFare.add(c.getFare());
         }
-        this.descs = descriptions;
+        List<BigDecimal> fares = new ArrayList<>();
+        fares.add(totalFare);
         this.fares = fares;
-        this.childNames = childNames;
 
         BigDecimal total = new BigDecimal("0.00");
-        for (BigDecimal f : fares) {
+        for (BigDecimal f : this.fares) {
             total = total.add(f);
         }
         this.subtotal = total;
         this.balDue = total;
-    }
-
-    public static String removeLastChar(String s) {
-        return Optional.ofNullable(s)
-                .filter(str -> str.length() != 0)
-                .map(str -> str.substring(0, str.length() - 1))
-                .orElse(s);
     }
 
     public String getParentName1() {

@@ -1,6 +1,6 @@
 package util;
 
-import bean.Invoice;
+import entity.Invoice;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.interactive.form.PDAcroForm;
 import org.apache.pdfbox.pdmodel.interactive.form.PDTextField;
