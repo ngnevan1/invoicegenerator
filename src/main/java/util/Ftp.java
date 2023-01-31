@@ -58,9 +58,7 @@ public class Ftp {
 
     /**
      * utility to create an arbitrary directory hierarchy on the remote ftp server
-     * @param client
      * @param dirTree  the directory tree only delimited with / chars.  No file name!
-     * @throws Exception
      */
     private static void ftpCreateDirectoryTree( FTPClient client, String dirTree ) throws IOException {
 

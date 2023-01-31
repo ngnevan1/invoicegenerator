@@ -20,7 +20,6 @@ import java.util.Properties;
 
 public class EmailManager
 {
-    private final String emailServerName = "rstransport.com.sg";
     private String smtpAuthUser;
     private String smtpAuthPassword;
 
@@ -38,8 +37,7 @@ public class EmailManager
 
 
 
-    public Boolean sendEmail(Invoice invoice, InputStream pdf)
-    {
+    public Boolean sendEmail(Invoice invoice, InputStream pdf, InvoiceType type) {
         String emailBody = "Hi ";
         if (invoice.getParentName2() != null) {
             emailBody += invoice.getParentName1() + " and " + invoice.getParentName2();
@@ -47,13 +45,15 @@ public class EmailManager
             emailBody += invoice.getParentName1();
         }
 
-        emailBody += ",\n\nYour invoice for " + invoice.getMth() + "'s school bus fees is attached. Please make payment of $" + invoice.getBalDue() + " by " + invoice.getDueDate() + ".";
+
+        emailBody += ",\n\nYour invoice for " + invoice.getDescs().get(0) + " for " + invoice.getMth() + " is attached. Please make payment of $" + invoice.getBalDue() + " by " + invoice.getDueDate() + ". The payment details can be found in the invoice.";
         emailBody += "\nIf you have any questions, please reply to this email. Thank you.";
         emailBody += "\n\nKind regards,";
         emailBody += "\nRS Transport";
         try {
             Properties props = new Properties();
             props.put("mail.transport.protocol", "smtp");
+            String emailServerName = "rstransport.com.sg";
             props.put("mail.smtp.host", emailServerName);
             props.put("mail.smtp.port", "587");
             props.put("mail.smtp.auth", "true");
@@ -69,8 +69,12 @@ public class EmailManager
                     });
 
             List<String> toEmailAddress = new ArrayList<>();
-            toEmailAddress.add(invoice.getParentEmail1());
-            if (invoice.getParentEmail2() != null) {
+            String parentEmail1 = invoice.getParentEmail1();
+            String parentEmail2 = invoice.getParentEmail2();
+            if (parentEmail1 != null && !parentEmail1.isEmpty()) {
+                toEmailAddress.add(invoice.getParentEmail1());
+            }
+            if (parentEmail2 != null && !parentEmail2.isEmpty()) {
                 toEmailAddress.add(invoice.getParentEmail2());
             }
 
@@ -82,7 +86,11 @@ public class EmailManager
             Message msg = new MimeMessage(session);
             msg.setFrom(new InternetAddress(smtpAuthUser, "RS Transport"));
             msg.setRecipients(Message.RecipientType.TO, addresses);
-            msg.setSubject("Invoice from RS Transport for " + invoice.getMth());
+            if (type.equals(InvoiceType.REGULAR)) {
+                msg.setSubject("Invoice from RS Transport for " + invoice.getMth() + " School Bus Fee");
+            } else {
+                msg.setSubject("Invoice from RS Transport for " + invoice.getMth() + " CCA Bus Fee");
+            }
             msg.setSentDate(new Date());
 
             //set the first text message part

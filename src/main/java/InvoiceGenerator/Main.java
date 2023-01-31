@@ -4,59 +4,69 @@ import entity.Child;
 import entity.Invoice;
 import util.Csv;
 import util.EmailManager;
+import util.InvoiceType;
 import util.Pdf;
 
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.*;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.util.concurrent.TimeUnit;
 
 public class Main {
-    private static final String MAC_PDF_PATH = "Invoices/00-SourceFiles/SourceFile.pdf";
-    private static final String WIN_PDF_PATH = "C:\\Invoices\\00-SourceFiles\\SourceFile.pdf";
-    private static final String MAC_CSV_PATH = "Invoices/00-SourceFiles/SourceData.csv";
-    private static final String WIN_CSV_PATH = "C:\\Invoices\\00-SourceFiles\\SourceData.csv";
+
+    private static final String MAC = "Invoices/00-SourceFiles/";
+    private static final String WIN = "C:\\Invoices\\00-SourceFiles\\";
+    private static final String MAC_PDF_PATH = MAC + "SourceFile.pdf";
+    private static final String WIN_PDF_PATH = WIN + "SourceFile.pdf";
+    private static final String MAC_REG_CSV_PATH = MAC + "RegBus.csv";
+    private static final String WIN_REG_CSV_PATH = WIN + "RegBus.csv";
+    private static final String MAC_CCA_CSV_PATH = MAC + "CcaBus.csv";
+    private static final String WIN_CCA_CSV_PATH = WIN + "CcaBus.csv";
+    private static final String WIN_OUT = WIN  + "out.txt";
+    private static final String MAC_OUT = MAC + "out.txt";
+    private static final String SCH_NAME = "SJI";
 
     public static void main(String[] args) {
 
         System.out.println("***Invoice Generator Application v1.2***");
-        Scanner scanner = new Scanner(System.in);
+        Scanner sc = new Scanner(System.in);
         String osName = System.getProperty("os.name");
-        int sendEmail = 0;
-        String schName = "SJI";
+        String schName = SCH_NAME;
         int os = osName.equals("Mac OS X") ? 2 : 1;
-
+        InvoiceType type;
         System.out.println("This program is running on " + osName);
-        System.out.println("Please ensure that the files are in the following directory:");
-        if (os == 1) {
-            System.out.println(WIN_PDF_PATH);
-            System.out.println(WIN_CSV_PATH);
-        } else {
-            System.out.println(MAC_PDF_PATH);
-            System.out.println(MAC_CSV_PATH);
-        }
-
-        System.out.println("Please enter the Invoice Date (DD)>");
-        int dateOfInvoice = scanner.nextInt();
-
-        System.out.println("Please enter the Invoice Due Date (DD)>");
-        int dueDateOfInvoice = scanner.nextInt();
-
-        while (true) {
-            System.out.print("Do you want emails to be sent? (1: Yes, 2: No)> ");
-            int input = scanner.nextInt();
-            if (input >= 1 && input <= 2) {
+            System.out.print("Please select what type of invoices you wish to generate (1: Regular Bus, 2: CCA)> ");
+            int input = sc.nextInt();
+            while (true) {
                 if (input == 1) {
-                    sendEmail = 1;
+                    type = InvoiceType.REGULAR;
+                    break;
+                } else if (input == 2) {
+                    type = InvoiceType.CCA;
+                    break;
+                } else {
+                    System.out.println("Invalid option, please try again!\n");
                 }
-                break;
-            } else {
-                System.out.println("Invalid option, please try again!\n");
             }
-        }
+        generateInvoice(os, type, schName);
+
+        System.out.println("...Press any key to continue...");
+        sc.nextLine();
+        sc.nextLine();
+        System.out.println("Goodbye!");
+    }
+
+
+    private static void generateInvoice(int os, InvoiceType type, String schName) {
         try {
-            List<Child> allChildren = Csv.getRowData(os);
+            // get invoice dates from user
+            List<Date> invoiceDates = datePicker();
+            boolean sendEmail = emailPicker();
+
+            // parse provided csv for data
+            List<Child> allChildren = Csv.getRowData(os, type);
+
             if (allChildren.isEmpty()) {
                 System.out.println("No data found.");
             } else {
@@ -84,7 +94,7 @@ public class Main {
                         }
                     }
                     //generate invoice per duplicate child
-                    count = generateInvoice(sendEmail, schName, os, count, childCount, eachChild, dateOfInvoice, dueDateOfInvoice);
+                    count = generateInvoice(sendEmail, schName, os, count, childCount, eachChild, invoiceDates,type);
 
                 }
                 // generate invoice for remaining children
@@ -98,7 +108,7 @@ public class Main {
                 for (Child c : remainingChildren) {
                     List<Child> child = new ArrayList<>();
                     child.add(c);
-                    count = generateInvoice(sendEmail, schName, os, count, childCount, child, dateOfInvoice, dueDateOfInvoice);
+                    count = generateInvoice(sendEmail, schName, os, count, childCount, child, invoiceDates,type);
                 }
             }
             System.out.println("***Invoice Generation Complete***");
@@ -108,26 +118,82 @@ public class Main {
             } else {
                 System.out.println("Invoices/ParentName");
             }
-            System.out.println("...Press any key to continue...");
-            scanner.nextLine();
-            scanner.nextLine();
-            System.out.println("Goodbye!");
-        } catch (IOException ex) {
-            Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (FileNotFoundException e) {
+            System.out.println("An error has occurred! Please fix the following and re-run the program");
+            System.out.println("Please ensure that the files are in the following directory:");
+            if (os == 1) {
+                System.out.println(WIN_PDF_PATH);
+                if (type.equals(InvoiceType.REGULAR)) {
+                    System.out.println(WIN_REG_CSV_PATH);
+                } else {
+                    System.out.println(WIN_CCA_CSV_PATH);
+                }
+            } else if (os == 2) {
+                System.out.println(MAC_PDF_PATH);
+                if (type.equals(InvoiceType.CCA)) {
+                    System.out.println(MAC_REG_CSV_PATH);
+                } else {
+                    System.out.println(MAC_CCA_CSV_PATH);
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
         }
-
     }
 
-    private static int generateInvoice(int sendEmail, String schName, int os, int count, int childCount, List<Child> eachChild, int dateOfInvoice, int dueDateOfInvoice) throws IOException {
-        Invoice invoice = new Invoice(eachChild, schName, count, dateOfInvoice, dueDateOfInvoice);
+    private static boolean emailPicker() {
+        Scanner sc = new Scanner(System.in);
+        System.out.print("Do you want emails to be sent? (1: Yes, 2: No)> ");
+        int input = sc.nextInt();
+        return input == 1;
+    }
+
+    private static List<Date> datePicker() {
+        Scanner sc = new Scanner(System.in);
+        SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yy");
+
+        try {
+            System.out.println("Please enter the Invoice Date (DD/MM/YY)>");
+            Date invoiceDate = dateFormat.parse(sc.nextLine());
+
+            System.out.println("Please enter the Invoice Due Date (DD/MM/YY)>");
+            Date invoiceDueDate = dateFormat.parse(sc.nextLine());
+
+            List<Date> invoiceDates = new ArrayList<>();
+            invoiceDates.add(invoiceDate);
+            invoiceDates.add(invoiceDueDate);
+            return invoiceDates;
+        } catch (ParseException e) {
+            System.out.println("Please enter the date in a valid format e.g. 25/12/2023");
+        }
+        return null;
+    }
+
+    private static int generateInvoice(boolean sendEmail, String schName, int os, int count, int childCount, List<Child> eachChild, List<Date> invoiceDates, InvoiceType type) throws IOException {
+
+        Invoice invoice = new Invoice(eachChild, schName, count, invoiceDates, type);
         InputStream pdf = new Pdf().fillPdf(invoice, os);
-        sendEmail(schName, invoice, pdf, sendEmail);
+        if (sendEmail) {
+            if (count == 199) {
+                try {
+                    System.out.println("***DO NOT CLOSE PROGRAM***");
+                    System.out.println("The email server only allows 400 emails to be sent per hour per email address. As a result, this program will pause for 62 minutes to allow this quota to be reset.");
+                    System.out.println("1. Please keep this application open");
+                    System.out.println("2. Please ensure that this computer does not go to sleep or shuts down.");
+                    TimeUnit.MINUTES.sleep(62);
+                    System.out.println("SLEEP END");
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                }
+            }
+            sendEmail(schName, invoice, pdf, type);
+        }
         count++;
         System.out.println(count + "/" + childCount + " Invoices Generated: " + invoice.getFileName());
         return count;
     }
 
-    private static void sendEmail(String schName, Invoice invoice, InputStream pdf, int sendEmail) {
+    private static void sendEmail(String schName, Invoice invoice, InputStream pdf, InvoiceType type) {
         try (InputStream input = Main.class.getClassLoader().getResourceAsStream("config.properties")) {
 
             Properties prop = new Properties();
@@ -138,10 +204,9 @@ public class Main {
 
             //load a properties file from class path, inside static method
             prop.load(input);
-
-            if (schName.equals("SJI") && sendEmail == 1) {
+            if (schName.equals("SJI")) {
                 EmailManager emailManager = new EmailManager("sji@rstransport.com.sg", prop.getProperty("smtpAuthPassword"));
-                emailManager.sendEmail(invoice, pdf);
+                emailManager.sendEmail(invoice, pdf, type);
             }
 
         } catch (IOException ex) {

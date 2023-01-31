@@ -1,21 +1,23 @@
 package entity;
 
+import util.InvoiceType;
+
 import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
 public class Invoice {
-    private String parentName1;
+    private final String parentName1;
 
-    private String parentEmail1;
+    private final String parentEmail1;
 
     private String parentName2;
 
     private String parentEmail2;
 
-    private List<String> childNames;
+    private final List<String> childNames;
 
-    private String invoiceNo;
+    private final String invoiceNo;
 
     private final String invoiceDate;
 
@@ -23,47 +25,51 @@ public class Invoice {
 
     private final String mth;
 
-    private List<String> descs;
+    private final List<String> descs;
 
-    private List<BigDecimal> fares;
+    private final List<BigDecimal> fares;
 
-    private BigDecimal subtotal;
-    private BigDecimal balDue;
+    private final BigDecimal subtotal;
+    private final BigDecimal balDue;
 
     private final String fileName;
 
-    public Invoice(String schName, String childName, int childCount, int dateOfInvoice, int dueDateOfInvoice) {
-        //set invoice dates
-        Calendar invoiceDate = Calendar.getInstance();
-        invoiceDate.set(Calendar.DAY_OF_MONTH, dateOfInvoice);
-        Calendar invoiceDueDate = Calendar.getInstance();
-        invoiceDueDate.set(Calendar.DAY_OF_MONTH, dueDateOfInvoice);
-        invoiceDueDate.add(Calendar.MONTH, 1);
-        SimpleDateFormat outputDateFormat = new SimpleDateFormat("dd-MMM-yyyy");
-
-        this.invoiceDate = outputDateFormat.format(invoiceDate.getTime());
-        this.dueDate = outputDateFormat.format(invoiceDueDate.getTime());
-        this.mth = new SimpleDateFormat("MMM").format(invoiceDueDate.getTime());
-
-        //set invoice no. and filename
-        SimpleDateFormat fileNameFormat = new SimpleDateFormat("MMMyy");
-        String childNameFormatted = String.valueOf(childName);
+    public Invoice(List<Child> children, String schName, int childCount, List<Date> invoiceDates, InvoiceType type) {
+        String childName = children.get(0).getChildName();
+        String childNameFormatted = String.valueOf(childName).trim();
         childNameFormatted = childNameFormatted.replace("/","");
-        this.fileName = schName + "-" + fileNameFormat.format(invoiceDueDate.getTime()) + "-" + childNameFormatted.replaceAll(" ", ".") + ".pdf";
 
-        this.invoiceNo = schName + "-" + fileNameFormat.format(invoiceDueDate.getTime()) + "-" + childCount;
+        //set invoice dates
+        SimpleDateFormat outputDateFormat = new SimpleDateFormat("dd-MMM-yyyy");
+        Date invoiceDate = invoiceDates.get(0);
+        Date invoiceDueDate = invoiceDates.get(1);
+        this.invoiceDate = outputDateFormat.format(invoiceDate);
+        this.dueDate = outputDateFormat.format(invoiceDueDate);
 
+        //set invoice no., filename and descriptions
+        SimpleDateFormat fileNameFormat = new SimpleDateFormat("MMMyy");
+        SimpleDateFormat mthFormat = new SimpleDateFormat("MMM");
         List<String> descriptions = new ArrayList<>();
         List<String> childNames = new ArrayList<>();
 
-        descriptions.add("School Bus Fee for " + childName);
+        if (type.equals(InvoiceType.REGULAR)) {
+            this.mth = mthFormat.format(invoiceDueDate);
+            this.fileName = schName + "-" + fileNameFormat.format(invoiceDueDate.getTime()) + "-" + childNameFormatted.replaceAll(" ", ".") + ".pdf";
+            this.invoiceNo = schName + "-" + fileNameFormat.format(invoiceDueDate.getTime()) + "-" + childCount;
+            descriptions.add("School Bus Fee for " + childName);
+        } else {
+            Calendar mth = Calendar.getInstance();
+            mth.setTime(invoiceDate);
+            mth.add(Calendar.MONTH, -1);
+            this.mth = mthFormat.format(mth.getTime());
+            this.fileName = schName + "-CCA-" + fileNameFormat.format(mth.getTime()) + "-" + childNameFormatted.replaceAll(" ", ".") + ".pdf";
+            this.invoiceNo = schName + "-" + fileNameFormat.format(mth.getTime()) + "-" + childCount;
+            descriptions.add("CCA Bus Fee for " + childName);
+        }
         childNames.add(childNameFormatted);
         this.descs = descriptions;
         this.childNames = childNames;
-    }
 
-    public Invoice(List<Child> children, String schName, int childCount, int dateOfInvoice, int dueDateOfInvoice) {
-        this(schName, children.get(0).getChildName(), childCount, dateOfInvoice, dueDateOfInvoice);
         Child lineItem = children.get(0);
 
             if (lineItem.getFatherName().isEmpty() || lineItem.getFatherName() == null) {
