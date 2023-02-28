@@ -72,10 +72,10 @@ public class EmailManager
             List<String> toEmailAddress = new ArrayList<>();
             String parentEmail1 = invoice.getParentEmail1();
             String parentEmail2 = invoice.getParentEmail2();
-            if (parentEmail1.matches("^(.+)@(.+)$")) {
+            if (parentEmail1 != null && parentEmail1.matches("^(.+)@(.+)$")) {
                toEmailAddress.add(invoice.getParentEmail1().trim());
             }
-            if (parentEmail2.matches("^(.+)@(.+)$")) {
+            if (parentEmail2 != null && parentEmail2.matches("^(.+)@(.+)$")) {
                 toEmailAddress.add(invoice.getParentEmail2().trim());
             }
 

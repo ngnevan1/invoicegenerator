@@ -24,6 +24,17 @@ public class Child {
     @CsvBindByName(column = "Name", required = true)
     private String childName;
 
+    public String getCcaDates() {
+        return ccaDates;
+    }
+
+    public void setCcaDates(String ccaDates) {
+        this.ccaDates = ccaDates;
+    }
+
+    @CsvBindByName(column = "Day of Subject / CCA")
+    private String ccaDates;
+
     @CsvBindByName(column = "FARE", required = true, locale = "en-SG")
     private BigDecimal fare;
 

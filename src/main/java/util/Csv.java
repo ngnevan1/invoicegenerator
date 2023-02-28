@@ -38,7 +38,7 @@ public class Csv {
                     .withType(Child.class)
                     .withSkipLines(3)
                     .withIgnoreEmptyLine(true)
-                    .withFilter(line -> line[2].length() == 5 && !line[2].equals("Level"))
+                    .withFilter(line -> line[2].length() == 5 && !line[2].equals("Level") && !line[39].isEmpty())
                     .build()
                     .parse();
         }

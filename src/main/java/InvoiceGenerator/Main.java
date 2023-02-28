@@ -179,7 +179,7 @@ public class Main {
     private static int generateInvoice(boolean sendEmail, String schName, int os, int count, int childCount, List<Child> eachChild, List<Date> invoiceDates, InvoiceType type, PrintWriter output) throws IOException {
 
         Invoice invoice = new Invoice(eachChild, schName, count, invoiceDates, type);
-        InputStream pdf = new Pdf().fillPdf(invoice, os);
+        InputStream pdf = new Pdf().fillPdf(invoice, os, type);
         count++;
         System.out.println(count + "/" + childCount + " Invoices Generated: " + invoice.getFileName());
         output.println(count + "/" + childCount + " Invoices Generated: " + invoice.getFileName());

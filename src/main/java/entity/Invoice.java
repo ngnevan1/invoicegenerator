@@ -63,8 +63,9 @@ public class Invoice {
             mth.add(Calendar.MONTH, -1);
             this.mth = mthFormat.format(mth.getTime());
             this.fileName = schName + "-CCA-" + fileNameFormat.format(mth.getTime()) + "-" + childNameFormatted.replaceAll(" ", ".") + ".pdf";
-            this.invoiceNo = schName + "-" + fileNameFormat.format(mth.getTime()) + "-" + childCount;
+            this.invoiceNo = schName + "-" + fileNameFormat.format(mth.getTime()) + "-C" + childCount;
             descriptions.add("CCA Bus Fee for " + childName);
+            descriptions.add(children.get(0).getCcaDates());
         }
         childNames.add(childNameFormatted);
         this.descs = descriptions;

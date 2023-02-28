@@ -12,7 +12,7 @@ public class Pdf {
     private static final String MAC_PDF_PATH = "Invoices/00-SourceFiles/SourceFile.pdf";
     private static final String WIN_PDF_PATH = "C:\\Invoices\\00-SourceFiles\\SourceFile.pdf";
 
-    public InputStream fillPdf(Invoice invoice, int os) throws IOException {
+    public InputStream fillPdf(Invoice invoice, int os, InvoiceType type) throws IOException {
         // load the document
         InputStream in = null;
         File templateFile;
@@ -63,27 +63,32 @@ public class Pdf {
             PDTextField fare1 = (PDTextField) acroForm.getField("Fare1");
             fare1.setValue("$" + invoice.getFares().get(0));
 
-            if (invoice.getDescs().size() >= 2) {
-                PDTextField mth2 = (PDTextField) acroForm.getField("Mth2");
-                mth2.setValue(invoice.getMth());
-
+            if (type.equals(InvoiceType.CCA)) {
                 PDTextField desc2 = (PDTextField) acroForm.getField("Desc2");
                 desc2.setValue(invoice.getDescs().get(1));
-
-                PDTextField fare2 = (PDTextField) acroForm.getField("Fare2");
-                fare2.setValue("$" + invoice.getFares().get(1));
             }
 
-            if (invoice.getDescs().size() >= 3) {
-                PDTextField mth3 = (PDTextField) acroForm.getField("Mth3");
-                mth3.setValue(invoice.getMth());
-
-                PDTextField desc2 = (PDTextField) acroForm.getField("Desc3");
-                desc2.setValue(invoice.getDescs().get(2));
-
-                PDTextField fare2 = (PDTextField) acroForm.getField("Fare3");
-                fare2.setValue("$" + invoice.getFares().get(2));
-            }
+//            if (invoice.getDescs().size() >= 2) {
+//                PDTextField mth2 = (PDTextField) acroForm.getField("Mth2");
+//                mth2.setValue(invoice.getMth());
+//
+//                PDTextField desc2 = (PDTextField) acroForm.getField("Desc2");
+//                desc2.setValue(invoice.getDescs().get(1));
+//
+//                PDTextField fare2 = (PDTextField) acroForm.getField("Fare2");
+//                fare2.setValue("$" + invoice.getFares().get(1));
+//            }
+//
+//            if (invoice.getDescs().size() >= 3) {
+//                PDTextField mth3 = (PDTextField) acroForm.getField("Mth3");
+//                mth3.setValue(invoice.getMth());
+//
+//                PDTextField desc2 = (PDTextField) acroForm.getField("Desc3");
+//                desc2.setValue(invoice.getDescs().get(2));
+//
+//                PDTextField fare2 = (PDTextField) acroForm.getField("Fare3");
+//                fare2.setValue("$" + invoice.getFares().get(2));
+//            }
 
             PDTextField subtotal = (PDTextField) acroForm.getField("Subtotal");
             subtotal.setValue("$" + invoice.getSubtotal());
